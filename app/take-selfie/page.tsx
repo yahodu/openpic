@@ -14,7 +14,7 @@ export default function MyFacePage() {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
+    if (!file.type?.startsWith('image/')) {
       toast.error('Please upload an image');
       return;
     }

@@ -30,7 +30,7 @@ export default function UploadEventPage() {
     const newFiles: FileInfo[] = [];
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList.item(i);
-      if (!file || !file.type.startsWith("image/")) continue;
+      if (!file || !file.type?.startsWith("image/")) continue;
       if (file.size === 0) continue;
 
       // Prevent massive files
