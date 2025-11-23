@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     // 🔒 Dedupe key: SHA256 of raw bytes
     // Use base64 or hex — avoid deprecated "binary"
     // const hash = SHA256(buffer.toString("base64")).toString();
-    const hash = await sha256base64(arrayBuffer);
+    const hash = `${await sha256base64(arrayBuffer)}.jpg`;
 
     // 🚫 Deduplication
     if (await redis.exists(`img:${hash}`)) {
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
     // ☁️ Upload to Storj
     let storjUrl: string;
     try {
-      storjUrl = await uploadToStorj(`${hash}.jpg`, buffer);
+      storjUrl = await uploadToStorj(`${hash}`, buffer);
     } catch (error) {
       console.error("Storj upload failed:", error);
       return Response.json({ error: "Upload failed" }, { status: 500 });

@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const redisExists = await redis.exists(`img:${hash}`);
     const mongoExists = await db
       .collection("event_photos")
-      .findOne({ hash: hash }, { projection: { hash: 1 } });
+      .findOne({ photoId: hash }, { projection: { photoId: 1 } });
 
     if (redisExists || mongoExists) {
       continue; // skip — already known
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     const command = new PutObjectCommand({
       Bucket: process.env.STORJ_BUCKET_NAME!,
-      Key: `${hash}.jpg`,
+      Key: hash,
       ContentType: "image/jpeg",
     });
     const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });

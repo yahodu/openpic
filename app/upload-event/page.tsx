@@ -67,7 +67,7 @@ export default function UploadEventPage() {
 
       try {
         const buffer = await fileInfo.file.arrayBuffer();
-        const hash = await sha256base64(buffer);
+        const hash = `${await sha256base64(buffer)}.jpg`;
         updatedFiles[i] = { ...fileInfo, hash };
       } catch (err) {
         console.error("Hash error:", err);
