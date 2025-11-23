@@ -1,21 +1,23 @@
-'use client';
+"use client";
 
-import { useState, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, Camera, RotateCcw } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Upload, Camera, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function MyFacePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type?.startsWith('image/')) {
-      toast.error('Please upload an image');
+    if (!file.type?.startsWith("image/")) {
+      toast.error("Please upload an image");
       return;
     }
     const url = URL.createObjectURL(file);
@@ -25,19 +27,27 @@ export default function MyFacePage() {
   const uploadSelfie = async () => {
     if (!imagePreview) return;
     setIsUploading(true);
-    
-    const res = await fetch('/api/upload-selfie', {
-      method: 'POST',
-      body: await (await fetch(imagePreview)).blob(),
-    });
 
-    if (res.ok) {
-      toast.success('Selfie uploaded! Matching in progress...');
-      // Redirect or poll for results
-    } else {
-      toast.error('Upload failed');
+    try {
+      const res = await fetch("/api/upload-selfie", {
+        method: "POST",
+        body: await (await fetch(imagePreview)).blob(),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        toast.success("Selfie uploaded! Matching in progress...");
+        // Redirect to photo-matches page with selfieId
+        router.push(`/photo-matches?selfieId=${data.selfieId}`);
+      } else {
+        toast.error("Upload failed");
+      }
+    } catch (error) {
+      toast.error("Upload failed");
+      console.error("Upload error:", error);
+    } finally {
+      setIsUploading(false);
     }
-    setIsUploading(false);
   };
 
   return (
@@ -86,7 +96,7 @@ export default function MyFacePage() {
             onClick={uploadSelfie}
             disabled={!imagePreview || isUploading}
           >
-            {isUploading ? 'Matching...' : 'Find My Photos'}
+            {isUploading ? "Matching..." : "Find My Photos"}
           </Button>
         </CardContent>
       </Card>
