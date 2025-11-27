@@ -1,6 +1,17 @@
 import cloudinary from "./cloudinary";
 
-let cachedResults;
+interface CloudinaryResource {
+  height: string;
+  width: string;
+  public_id: string;
+  format: string;
+}
+
+interface Cloudinary {
+  resources: Array<CloudinaryResource>;
+}
+
+let cachedResults: Cloudinary;
 
 export default async function getResults() {
   if (!cachedResults) {
