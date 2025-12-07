@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import Lottie from 'lottie-react';
+import Lottie from "lottie-react";
 import { useEffect, useState } from "react";
 import FeatureBlock from "./FeaturesBlock";
-import FooterSection from './FooterSection';
+import FooterSection from "./FooterSection";
 
 interface About3Props {
   title?: string;
@@ -99,15 +99,16 @@ const About3 = ({
   achievementsDescription = "Helping people relive their memories.",
   achievements = defaultAchievements,
 }: About3Props = {}) => {
-
   const [whyOpenPicAnimationData, setWhyOpenPicAnimationData] = useState(null);
   const [howOpenPicAnimationData, setHowOpenPicAnimationData] = useState(null);
 
   useEffect(() => {
-    fetch('/why_openpic_lottie.json')
-      .then(response => response.json())
-      .then(data => setWhyOpenPicAnimationData(data))
-      .catch(error => console.error('Error loading `Why OpenPic animation`:', error));
+    fetch("/why_openpic_lottie.json")
+      .then((response) => response.json())
+      .then((data) => setWhyOpenPicAnimationData(data))
+      .catch((error) =>
+        console.error("Error loading `Why OpenPic animation`:", error)
+      );
   }, []);
 
   // useEffect(() => {
@@ -119,7 +120,7 @@ const About3 = ({
 
   return (
     <>
-      <section className="py-32">
+      <section className="py-16">
         <div className="container">
           <div className="mb-14 grid gap-5 text-center md:grid-cols-2 md:text-left">
             <h1 className="text-5xl font-semibold">{title}</h1>
@@ -131,13 +132,14 @@ const About3 = ({
                 animationData={whyOpenPicAnimationData}
                 loop={true}
                 autoplay={true}
-                style={{ width: '100%', height: '100%' }}
+                style={{ width: "100%", height: "100%" }}
               />
             </div>
 
             <div className="flex flex-col gap-7 md:flex-row lg:flex-col">
-
-              <h1 className="text-4xl font-semibold text-center md:text-left">{subTitle}</h1>
+              <h1 className="text-4xl font-semibold text-center md:text-left">
+                {subTitle}
+              </h1>
 
               <div className="rounded-3xl overflow-hidden object-cover md:w-1/2 lg:min-h-0 lg:w-full">
                 {/* <Lottie
@@ -151,9 +153,7 @@ const About3 = ({
                   Your browser does not support the video tag.
                 </video>
               </div>
-
             </div>
-
           </div>
 
           <FeatureBlock />
@@ -191,12 +191,10 @@ const About3 = ({
                 </div>
               ))}
             </div>
-
-
           </div>
         </div>
       </section>
-      <div className='w-full'>
+      <div className="w-full">
         <FooterSection />
       </div>
     </>

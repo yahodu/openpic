@@ -20,7 +20,7 @@
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.23.24",
+    "framer-motion": "^12.23.25",
     "imagemin": "^9.0.1",
     "imagemin-jpegtran": "^8.0.0",
     "jszip": "^3.10.1",
@@ -36,7 +36,6 @@
     "react-swipeable": "^7.0.2",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
-    "three": "^0.181.2",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
