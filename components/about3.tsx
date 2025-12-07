@@ -76,23 +76,6 @@ const About3 = ({
   title = "Why OpenPic",
   subTitle = "How OpenPic",
   description = "",
-  mainImage = {
-    src: "./why_openpic_lottie.json",
-    alt: "placeholder",
-  },
-  secondaryImage = {
-    src: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/placeholder-2.svg",
-    alt: "placeholder",
-  },
-  breakout = {
-    src: "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/block-1.svg",
-    alt: "logo",
-    title: "Hundreds of blocks at Shadcnblocks.com",
-    description:
-      "Providing businesses with effective tools to improve workflows, boost efficiency, and encourage growth.",
-    buttonText: "Discover more",
-    buttonUrl: "https://shadcnblocks.com",
-  },
   companiesTitle = "Valued by clients worldwide",
   companies = defaultCompanies,
   achievementsTitle = "We are Happy",
@@ -100,7 +83,6 @@ const About3 = ({
   achievements = defaultAchievements,
 }: About3Props = {}) => {
   const [whyOpenPicAnimationData, setWhyOpenPicAnimationData] = useState(null);
-  const [howOpenPicAnimationData, setHowOpenPicAnimationData] = useState(null);
 
   useEffect(() => {
     fetch("/why_openpic_lottie.json")
@@ -110,13 +92,6 @@ const About3 = ({
         console.error("Error loading `Why OpenPic animation`:", error)
       );
   }, []);
-
-  // useEffect(() => {
-  //   fetch('/how_openpic_lottie.json')
-  //     .then(response => response.json())
-  //     .then(data => setHowOpenPicAnimationData(data))
-  //     .catch(error => console.error('Error loading `How OpenPic animation`:', error));
-  // }, []);
 
   return (
     <>
@@ -142,12 +117,6 @@ const About3 = ({
               </h1>
 
               <div className="rounded-3xl overflow-hidden object-cover md:w-1/2 lg:min-h-0 lg:w-full">
-                {/* <Lottie
-                animationData={howOpenPicAnimationData}
-                loop={true}
-                autoplay={true}
-                style={{ width: '100%', height: '101%',  }}
-              /> */}
                 <video width="640" height="240" muted loop autoPlay>
                   <source src="./how_openpic.mp4" type="video/mp4" />
                   Your browser does not support the video tag.

@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "",
-  description: "",
+  title: "OpenPic",
+  description: "Own your Memories",
 };
 
 export default function RootLayout({
