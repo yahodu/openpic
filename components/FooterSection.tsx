@@ -3,9 +3,8 @@ import { Mail } from 'lucide-react';
 
 export default function FooterSection() {
     const navLinks = [
-        { href: '#', label: 'Features' },
-        { href: '#', label: 'Pricing' },
-        { href: '#', label: 'About' },
+        { href: '/privacy-policy', label: 'Privacy Policy' },
+        { href: 'terms-and-conditions', label: 'Terms and Conditions' },
     ];
 
     return (
@@ -20,11 +19,11 @@ export default function FooterSection() {
                         OpenPic
                     </a>
                     <div className="flex items-center gap-4">
-                        {/* {navLinks.map((link) => (
+                        {navLinks.map((link) => (
                             <Button key={link.label} asChild variant={'ghost'} size={'sm'} className="text-muted-foreground -mx-2">
                                 <a href={link.href}>{link.label}</a>
                             </Button>
-                        ))} */}
+                        ))}
                     </div>
                 </div>
                 <hr className="my-6" />
