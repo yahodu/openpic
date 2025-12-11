@@ -83,6 +83,7 @@ const About3 = ({
   achievements = defaultAchievements,
 }: About3Props = {}) => {
   const [whyOpenPicAnimationData, setWhyOpenPicAnimationData] = useState(null);
+  const [showControls, setShowControls] = useState(false);
 
   useEffect(() => {
     fetch("/why_openpic_lottie.json")
@@ -91,6 +92,17 @@ const About3 = ({
       .catch((error) =>
         console.error("Error loading `Why OpenPic animation`:", error)
       );
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setShowControls(window.innerWidth <= 1024);
+    };
+
+    handleResize(); // Check on initial load
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return (
@@ -117,7 +129,15 @@ const About3 = ({
               </h1>
 
               <div className="rounded-3xl overflow-hidden object-cover md:w-1/2 lg:min-h-0 lg:w-full">
-                <video width="640" height="240" muted loop autoPlay>
+                <video
+                  width="640"
+                  height="240"
+                  muted
+                  loop
+                  autoPlay
+                  playsInline
+                  {...(showControls ? { controls: true } : {})}
+                >
                   <source src="./how_openpic.mp4" type="video/mp4" />
                   Your browser does not support the video tag.
                 </video>
