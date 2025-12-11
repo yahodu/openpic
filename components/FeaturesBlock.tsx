@@ -54,7 +54,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           title="Contact Us"
-          subtitle="Tell us about your needs and we'll create the perfect solution for you"
+          subtitle="We'll create the perfect solution for you"
         />
       </>
     );
