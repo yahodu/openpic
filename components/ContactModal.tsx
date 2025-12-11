@@ -55,9 +55,18 @@ export default function ContactModal({
     };
 
     try {
+      // TODO Send these two concurrently
+
       await emailjs.send(
         process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "",
-        process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || "",
+        process.env.NEXT_PUBLIC_EMAILJS_CONTACT_US_TEMPLATE_ID || "",
+        templateParams,
+        process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
+      );
+
+      await emailjs.send(
+        process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || "",
+        process.env.NEXT_PUBLIC_EMAILJS_AUTO_REPLY_TEMPLATE_ID || "",
         templateParams,
         process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY
       );
