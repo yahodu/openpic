@@ -31,7 +31,7 @@ export default function FooterSection() {
                     <Button variant={'ghost'} size="sm" className="text-muted-foreground -mx-2" asChild>
                         <a href="#">
                             <Mail className="size-4" />
-                            ceo@yahodu.in
+                            support@openpic.in
                         </a>
                     </Button>
                     <p className="text-muted-foreground text-sm/6">© 2025 OpenPic, Inc. All rights reserved.</p>

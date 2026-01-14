@@ -105,8 +105,8 @@ export default function PrivacyPolicy() {
                 </p>
                 <address className="not-italic">
                     Email:{" "}
-                    <a href="mailto:ceo@yahodu.in" className="text-primary hover:underline">
-                        ceo@yahodu.in
+                    <a href="mailto:support@openpic.in" className="text-primary hover:underline">
+                        support@openpic.in
                     </a>
                     <br />
                     {/* Address: [Your Company Address] */}
