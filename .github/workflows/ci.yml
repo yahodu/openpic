@@ -47,6 +47,53 @@ jobs:
           fi
           echo "✅ PR title is valid: '$TITLE'"
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      with:
+        node-version: 22
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  test_coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      with:
+        node-version: 22
+      - run: npm ci
+      - run: npm run test -- --coverage --coverageThreshold='{"global":{"lines":80}}'
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pr-size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Check PR size
+        run: |
+          LINES=$(git diff origin/${{ github.base_ref }}...HEAD \
+          --stat | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+')
+          if [[ "$LINES" -gt 500 ]]; then
+            echo "❌ PR is too large ($LINES lines added). Keep PRs under 500 lines for reviewability."
+            exit 1
+          fi
+            echo "✅ PR size is acceptable ($LINES lines)"
+
   unit_test:
     runs-on: ubuntu-latest
 
