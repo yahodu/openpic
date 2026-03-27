@@ -1,5 +1,10 @@
 # OpenPic Web Application
 
+Web application for OpenPic powered by Nextjs. This is a monorepo which contains:
+1. OpenPic Homepage
+2. OpenPic Frontend
+3. OpenPic Backend
+
 ## Development
 
 ### Code Commit
