@@ -1,5 +1,9 @@
 name: CI
 
+permissions:
+  contents: read
+# You can specify job-level permissions as well. It would override this permission level.
+
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
