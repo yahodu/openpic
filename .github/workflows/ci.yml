@@ -1,8 +1,48 @@
 name: CI
 
-on: pull_request
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
 
 jobs:
+
+  validate-branch-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch name
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          PATTERN="^OP-[0-9]+-( feature|bug|task)-[a-z0-9_-]+$"
+          if [[ ! "$BRANCH" =~ $PATTERN ]]; then
+            echo "❌ Invalid branch name: '$BRANCH'"
+            echo "Expected format: OP-123-feature-my-branch-name"
+            echo "work_type must be one of: feature, bug, task"
+            exit 1
+          fi
+          echo "✅ Branch name is valid: '$BRANCH'"
+
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          # Conventional commit types
+          TYPES="feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert"
+          # Pattern: type(optional-scope): OP-123 description
+          PATTERN="^($TYPES)(\(.+\))?: OP-[0-9]+ .+$"
+          if [[ ! "$TITLE" =~ $PATTERN ]]; then
+            echo "❌ Invalid PR title: '$TITLE'"
+            echo ""
+            echo "Expected format:"
+            echo "  feat: OP-123 add login page"
+            echo "  fix(auth): OP-456 resolve token expiry bug"
+            echo ""
+            echo "Conventional commit types: $TYPES"
+            exit 1
+          fi
+          echo "✅ PR title is valid: '$TITLE'"
+
   unit_test:
     runs-on: ubuntu-latest
 
