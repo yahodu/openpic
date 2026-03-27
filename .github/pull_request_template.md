@@ -49,6 +49,9 @@
   2. Fill in the table below (do not leave it empty if .env.example changed)
   3. Notify DevOps if variables are needed in staging/production
 -->
+
+No env changes
+
 | Status | Variable Name | Required? | Description / Where to get it |
 |--------|--------------|-----------|-------------------------------|
 | -      | -            | -         | No env changes                |
