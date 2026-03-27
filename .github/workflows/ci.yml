@@ -1,8 +1,140 @@
 name: CI
 
-on: pull_request
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
 
 jobs:
+
+  validate-branch-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch name
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          PATTERN="^OP-[0-9]+-(feature|bug|task)-[a-z0-9_-]+$"
+          if [[ ! "$BRANCH" =~ $PATTERN ]]; then
+            echo "❌ Invalid branch name: '$BRANCH'"
+            echo "Expected format: OP-123-feature-my-branch-name"
+            echo "work_type must be one of: feature, bug, task"
+            exit 1
+          fi
+          echo "✅ Branch name is valid: '$BRANCH'"
+
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          TYPES="feat|fix|chore|docs|style|refactor|perf|test|build|ci|revert"
+          PATTERN="^($TYPES)(\(.+\))?: OP-[0-9]+ .+$"
+          if [[ ! "$TITLE" =~ $PATTERN ]]; then
+            echo "❌ Invalid PR title: '$TITLE'"
+            echo ""
+            echo "Expected format:"
+            echo "  feat: OP-123 add login page"
+            echo "  fix(auth): OP-456 resolve token expiry bug"
+            echo ""
+            echo "Conventional commit types: $TYPES"
+            exit 1
+          fi
+          echo "✅ PR title is valid: '$TITLE'"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'npm'                  # ✅ Cache npm dependencies
+      - run: npm ci
+#      - run: npm run lint
+#      - run: npm run format:check
+
+  test_coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'npm'                  # ✅ Cache npm dependencies
+      - run: npm ci
+#      - run: npm run test -- --coverage --coverageThreshold='{"global":{"lines":80}}'
+
+  pr-size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Check PR size
+        run: |
+          LINES=$(git diff origin/${{ github.base_ref }}...HEAD \
+            --stat | tail -1 | grep -oP '\d+ insertion' | grep -oP '\d+')
+          LINES=${LINES:-0}
+          if [[ "$LINES" -gt 500 ]]; then
+            echo "❌ PR is too large ($LINES lines added). Keep PRs under 500 lines for reviewability."
+            exit 1
+          fi
+          echo "✅ PR size is acceptable ($LINES lines)"
+
+  env-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check env variable documentation
+        run: |
+          # Detect if .env.example changed in this PR
+          ENV_CHANGED=$(git diff origin/${{ github.base_ref }}...HEAD \
+            -- '.env.example' | wc -l)
+
+          if [[ "$ENV_CHANGED" -eq 0 ]]; then
+            echo "✅ No .env.example changes detected, skipping check."
+            exit 0
+          fi
+
+          echo "⚠️  .env.example was modified. Checking PR documentation..."
+          echo ""
+          echo "Diff:"
+          git diff origin/${{ github.base_ref }}...HEAD -- '.env.example'
+          echo ""
+
+          PR_BODY=$(cat << 'EOF'
+          ${{ github.event.pull_request.body }}
+          EOF
+          )
+
+          if echo "$PR_BODY" | grep -q "No env changes"; then
+            echo "❌ .env.example was changed but the PR description still has"
+            echo "   the default 'No env changes' placeholder."
+            echo ""
+            echo "   Please update the '🔐 Environment Variables' table in your PR"
+            echo "   description to document what changed."
+            exit 1
+          fi
+
+          if ! echo "$PR_BODY" | grep -q "Environment Variables"; then
+            echo "❌ '🔐 Environment Variables' section is missing from PR description."
+            exit 1
+          fi
+
+          if ! echo "$PR_BODY" | grep -qP '\|\s*[➕❌✏️]\s*\|'; then
+            echo "❌ No documented env variable changes found in the table."
+            echo "   Use ➕ for added, ❌ for removed, ✏️ for modified."
+            exit 1
+          fi
+
+          echo "✅ Env variable changes are documented in the PR description."
+
   unit_test:
     runs-on: ubuntu-latest
 
@@ -14,10 +146,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 22
+          cache: 'npm'                  # ✅ Cache npm dependencies
 
       - name: Install dependencies
         run: npm ci
 
 #      - name: Run tests
 #        run: npm run test
-
