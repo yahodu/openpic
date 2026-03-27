@@ -2,7 +2,7 @@ name: CI
 
 permissions:
   contents: read
-# You can specify job-level permissions as well. It would override this permission level.
+# You can specify job-level permissions as well. It would override this permission level for that job.
 
 on:
   pull_request:
@@ -93,6 +93,61 @@ jobs:
             exit 1
           fi
             echo "✅ PR size is acceptable ($LINES lines)"
+
+  env-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check env variable documentation
+        run: |
+        # Detect if .env.example changed in this PR
+        ENV_CHANGED=$(git diff origin/${{ github.base_ref }}...HEAD \
+          -- '.env.example' | wc -l)
+
+        if [[ "$ENV_CHANGED" -eq 0 ]]; then
+          echo "✅ No .env.example changes detected, skipping check."
+          exit 0
+        fi
+
+        echo "⚠️  .env.example was modified. Checking PR documentation..."
+        echo ""
+        echo "Diff:"
+        git diff origin/${{ github.base_ref }}...HEAD -- '.env.example'
+        echo ""
+
+        PR_BODY=$(cat << 'EOF'
+        ${{ github.event.pull_request.body }}
+        EOF
+        )
+
+        # Fail if the env table still has the placeholder "No env changes"
+        if echo "$PR_BODY" | grep -q "No env changes"; then
+          echo "❌ .env.example was changed but the PR description still has"
+          echo "   the default 'No env changes' placeholder."
+          echo ""
+          echo "   Please update the '🔐 Environment Variables' table in your PR"
+          echo "   description to document what changed."
+          exit 1
+        fi
+
+        # Fail if the env section table is missing entirely
+        if ! echo "$PR_BODY" | grep -q "Environment Variables"; then
+          echo "❌ '🔐 Environment Variables' section is missing from PR description."
+          exit 1
+        fi
+
+        # Fail if no table rows with actual variable entries exist
+        # Looks for rows that have a variable name pattern (UPPER_SNAKE_CASE)
+        if ! echo "$PR_BODY" | grep -qP '\|\s*[➕❌✏️]\s*\|'; then
+          echo "❌ No documented env variable changes found in the table."
+          echo "   Use ➕ for added, ❌ for removed, ✏️ for modified."
+          exit 1
+        fi
+
+        echo "✅ Env variable changes are documented in the PR description."
 
   unit_test:
     runs-on: ubuntu-latest
