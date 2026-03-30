@@ -31,7 +31,7 @@ jobs:
 
           # Expected format: OP-10-task-add-docs
           # Extract ticket ID (e.g. OP-10) and description (e.g. task-add-docs)
-          TICKET=$(echo "$BRANCH" | grep -oP '^[A-Z]+-\d+')
+          TICKET=$(echo "$BRANCH" | grep -oP '^[A-Z]+-\d+' | tr -d '[:space:]')
           DESCRIPTION=$(echo "$BRANCH" | sed "s|^${TICKET}-||")
 
           # Replace hyphens/underscores with spaces and title-case
