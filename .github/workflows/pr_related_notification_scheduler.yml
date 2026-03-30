@@ -1,8 +1,9 @@
 name: PR Status Notifier
 
 on:
-  schedule:
-    - cron: '*/20 * * * *'
+  repository_dispatch:
+    types: [pr-status-check]
+  workflow_dispatch:
 
 jobs:
   notify-pr-status:
