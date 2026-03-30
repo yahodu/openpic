@@ -1,4 +1,4 @@
-name: CI on new branch
+name: Create Draft PR on New Branch
 
 on:
   create:
@@ -29,11 +29,16 @@ jobs:
         run: |
           BRANCH="${{ github.ref_name }}"
 
-          # Strip common prefixes like feature/, fix/, chore/, etc.
-          STRIPPED=$(echo "$BRANCH" | sed 's|^[^/]*/||')
+          # Expected format: OP-10-task-add-docs
+          # Extract ticket ID (e.g. OP-10) and description (e.g. task-add-docs)
+          TICKET=$(echo "$BRANCH" | grep -oP '^[A-Z]+-\d+' | tr -d '[:space:]')
+          DESCRIPTION=$(echo "$BRANCH" | sed "s|^${TICKET}-||")
 
-          # Replace hyphens and underscores with spaces, then title-case
-          TITLE=$(echo "$STRIPPED" | tr '-_' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')
+          # Replace hyphens/underscores with spaces and title-case
+          READABLE=$(echo "$DESCRIPTION" | tr '-_' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')
+
+          # Final title: "OP-10 Task Add Docs"
+          TITLE="${TICKET} ${READABLE}"
 
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
 
@@ -59,4 +64,6 @@ jobs:
             --draft \
             --base main \
             --head "${{ github.ref_name }}" \
-            --title "${{ steps.title.outputs.title }}"
+            --title "${{ steps.title.outputs.title }}" \
+            --body-file ".github/pull_request_template.md"
+
