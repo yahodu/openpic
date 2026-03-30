@@ -1,0 +1,248 @@
+name: PR Status Notifier
+
+on:
+  schedule:
+    - cron: '*/20 * * * *'
+
+jobs:
+  notify-pr-status:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      checks: read
+
+    steps:
+      - name: Check PRs and notify Slack
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            // ── Fetch all open, non-draft PRs ──────────────────────────────
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner, repo, state: 'open', per_page: 100,
+            });
+
+            const readyPRs = pullRequests.filter(pr => !pr.draft);
+            console.log(`Found ${readyPRs.length} ready (non-draft) PRs`);
+
+            // Buckets
+            const failedChecksPRs   = [];  // Priority 1: has failed checks
+            const unresolvedCommentsPRs = [];  // Priority 2: has unresolved comments
+            const readyToMergePRs   = [];  // Priority 3: all green, ready to merge
+
+            for (const pr of readyPRs) {
+              const sha = pr.head.sha;
+
+              // ── 1. Get check runs ────────────────────────────────────────
+              const { data: checkRunsData } = await github.rest.checks.listForRef({
+                owner, repo, ref: sha, per_page: 100,
+              });
+
+              const allRuns = checkRunsData.check_runs;
+              const failedChecks = allRuns.filter(
+                run =>
+                  run.status === 'completed' &&
+                  ['failure', 'timed_out', 'cancelled'].includes(run.conclusion)
+              );
+              const pendingChecks = allRuns.filter(run => run.status !== 'completed');
+
+              if (failedChecks.length > 0) {
+                failedChecksPRs.push({ pr, failedChecks });
+                continue;  // highest priority — skip further checks for this PR
+              }
+
+              // ── 2. Get unresolved review comments ────────────────────────
+              // Fetch all reviews to find REQUEST_CHANGES
+              const { data: reviews } = await github.rest.pulls.listReviews({
+                owner, repo, pull_number: pr.number, per_page: 100,
+              });
+
+              // Get review comments (inline + general)
+              const { data: reviewComments } = await github.rest.pulls.listReviewComments({
+                owner, repo, pull_number: pr.number, per_page: 100,
+              });
+
+              // A comment thread is "unresolved" if it has no reply that resolves it.
+              // GitHub API doesn't expose resolved state directly, so we check:
+              // - Reviews with state REQUEST_CHANGES that haven't been superseded by APPROVED
+              const latestReviewByUser = {};
+              for (const review of reviews) {
+                if (['APPROVED', 'CHANGES_REQUESTED'].includes(review.state)) {
+                  latestReviewByUser[review.user.login] = review.state;
+                }
+              }
+
+              const requestChangesReviewers = Object.entries(latestReviewByUser)
+                .filter(([, state]) => state === 'CHANGES_REQUESTED')
+                .map(([user]) => user);
+
+              // Also count unresolved inline comment threads
+              // Group by in_reply_to_id to find root comments, check if resolved
+              const rootComments = reviewComments.filter(c => !c.in_reply_to_id);
+              const replies = reviewComments.filter(c => c.in_reply_to_id);
+              const repliedRootIds = new Set(replies.map(r => r.in_reply_to_id));
+
+              // Unresolved = root comments that have no replies (no one addressed them)
+              // or still have CHANGES_REQUESTED reviews outstanding
+              const unresolvedThreadCount = rootComments.filter(
+                c => !repliedRootIds.has(c.id)
+              ).length;
+
+              const hasUnresolved =
+                requestChangesReviewers.length > 0 || unresolvedThreadCount > 0;
+
+              if (hasUnresolved) {
+                unresolvedCommentsPRs.push({
+                  pr,
+                  requestChangesReviewers,
+                  unresolvedThreadCount,
+                });
+                continue;
+              }
+
+              // ── 3. Ready to merge (no failures, no unresolved comments) ──
+              if (pendingChecks.length === 0) {
+                // All checks completed and passed
+                const approvals = Object.values(latestReviewByUser).filter(
+                  s => s === 'APPROVED'
+                ).length;
+                readyToMergePRs.push({ pr, approvals });
+              }
+            }
+
+            // ── Build and send Slack message ────────────────────────────────
+            const hasAnything =
+              failedChecksPRs.length > 0 ||
+              unresolvedCommentsPRs.length > 0 ||
+              readyToMergePRs.length > 0;
+
+            if (!hasAnything) {
+              console.log('Nothing to report. No Slack message sent.');
+              return;
+            }
+
+            const blocks = [
+              {
+                type: 'header',
+                text: { type: 'plain_text', text: '📋 PR Status Report', emoji: true },
+              },
+              {
+                type: 'context',
+                elements: [{
+                  type: 'mrkdwn',
+                  text: `*${owner}/${repo}*  •  ${new Date().toUTCString()}`,
+                }],
+              },
+              { type: 'divider' },
+            ];
+
+            // ── Section 1: Failed Checks ─────────────────────────────────
+            if (failedChecksPRs.length > 0) {
+              blocks.push({
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*🔴 PRs with Failed Checks (${failedChecksPRs.length})*`,
+                },
+              });
+
+              for (const { pr, failedChecks } of failedChecksPRs) {
+                const checkList = failedChecks.map(c => {
+                  const icon =
+                    c.conclusion === 'failure'   ? '❌' :
+                    c.conclusion === 'timed_out' ? '⏱️' : '🚫';
+                  return `${icon} <${c.html_url}|${c.name}>`;
+                }).join('  ·  ');
+
+                blocks.push({
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: [
+                      `*<${pr.html_url}|#${pr.number} ${pr.title}>*`,
+                      `👤 ${pr.user.login}`,
+                      `Failed: ${checkList}`,
+                    ].join('\n'),
+                  },
+                });
+              }
+              blocks.push({ type: 'divider' });
+            }
+
+            // ── Section 2: Unresolved Comments ───────────────────────────
+            if (unresolvedCommentsPRs.length > 0) {
+              blocks.push({
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*💬 PRs with Unresolved Comments (${unresolvedCommentsPRs.length})*`,
+                },
+              });
+
+              for (const { pr, requestChangesReviewers, unresolvedThreadCount } of unresolvedCommentsPRs) {
+                const lines = [
+                  `*<${pr.html_url}|#${pr.number} ${pr.title}>*`,
+                  `👤 ${pr.user.login}`,
+                ];
+                if (requestChangesReviewers.length > 0) {
+                  lines.push(`🔁 Changes requested by: ${requestChangesReviewers.map(u => `\`${u}\``).join(', ')}`);
+                }
+                if (unresolvedThreadCount > 0) {
+                  lines.push(`💬 ${unresolvedThreadCount} unresolved comment thread(s)`);
+                }
+
+                blocks.push({
+                  type: 'section',
+                  text: { type: 'mrkdwn', text: lines.join('\n') },
+                });
+              }
+              blocks.push({ type: 'divider' });
+            }
+
+            // ── Section 3: Ready to Merge ────────────────────────────────
+            if (readyToMergePRs.length > 0) {
+              blocks.push({
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*✅ PRs Ready to Merge (${readyToMergePRs.length})*`,
+                },
+              });
+
+              for (const { pr, approvals } of readyToMergePRs) {
+                blocks.push({
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: [
+                      `*<${pr.html_url}|#${pr.number} ${pr.title}>*`,
+                      `👤 ${pr.user.login}  •  ✔️ ${approvals} approval(s)  •  All checks passed`,
+                    ].join('\n'),
+                  },
+                });
+              }
+              blocks.push({ type: 'divider' });
+            }
+
+            // ── Send to Slack ─────────────────────────────────────────────
+            const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+            const res = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ blocks }),
+            });
+
+            if (!res.ok) {
+              throw new Error(`Slack webhook failed: ${res.status} ${await res.text()}`);
+            }
+
+            console.log('Slack notified:', {
+              failedChecks: failedChecksPRs.length,
+              unresolvedComments: unresolvedCommentsPRs.length,
+              readyToMerge: readyToMergePRs.length,
+            });
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
