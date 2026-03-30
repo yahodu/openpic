@@ -1,0 +1,62 @@
+name: CI on new branch
+
+on:
+  create:
+    branches:
+      - '**'
+
+jobs:
+  create-draft-pr:
+    runs-on: ubuntu-latest
+    # Skip main/master/develop — only run on feature branches
+    if: |
+      github.ref_name != 'main' &&
+      github.ref_name != 'master' &&
+      github.ref_name != 'develop'
+
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Format PR title from branch name
+        id: title
+        run: |
+          BRANCH="${{ github.ref_name }}"
+
+          # Strip common prefixes like feature/, fix/, chore/, etc.
+          STRIPPED=$(echo "$BRANCH" | sed 's|^[^/]*/||')
+
+          # Replace hyphens and underscores with spaces, then title-case
+          TITLE=$(echo "$STRIPPED" | tr '-_' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')
+
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+
+      - name: Check if PR already exists
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          EXISTING=$(gh pr list \
+            --head "${{ github.ref_name }}" \
+            --base main \
+            --json number \
+            --jq '.[0].number')
+
+          echo "existing=$EXISTING" >> "$GITHUB_OUTPUT"
+
+      - name: Create draft PR
+        if: steps.check.outputs.existing == ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --draft \
+            --base main \
+            --head "${{ github.ref_name }}" \
+            --title "${{ steps.title.outputs.title }}"
