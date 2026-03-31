@@ -137,7 +137,7 @@ jobs:
                 type: 'context',
                 elements: [{
                   type: 'mrkdwn',
-                  text: `*${owner}/${repo}*  •  ${new Date().toUTCString()}`,
+                  text: `*${owner}/${repo}*  •  ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })} IST`,
                 }],
               },
               { type: 'divider' },
