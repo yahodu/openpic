@@ -1,0 +1,57 @@
+name: Notify Slack on PR Close
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  notify-slack-merged:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Send Slack notification (merged)
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "✅ PR Merged: *<${{ github.event.pull_request.html_url }}|${{ github.event.pull_request.title }}>*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*PR Merged* in `${{ github.repository }}`\n*<${{ github.event.pull_request.html_url }}|${{ github.event.pull_request.title }}>*\nMerged by: ${{ github.event.pull_request.merged_by.login }}\nBranch: `${{ github.event.pull_request.head.ref }}` → `${{ github.event.pull_request.base.ref }}`"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+  notify-slack-closed:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == false
+    steps:
+      - name: Send Slack notification (closed without merge)
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "text": "🔴 PR Closed (unmerged): *<${{ github.event.pull_request.html_url }}|${{ github.event.pull_request.title }}>*",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*PR Closed without merge* in `${{ github.repository }}`\n*<${{ github.event.pull_request.html_url }}|${{ github.event.pull_request.title }}>*\nClosed by: ${{ github.event.pull_request.user.login }}\nBranch: `${{ github.event.pull_request.head.ref }}`"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
