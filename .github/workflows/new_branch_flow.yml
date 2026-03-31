@@ -13,35 +13,30 @@ jobs:
       github.ref_name != 'main' &&
       github.ref_name != 'master' &&
       github.ref_name != 'develop'
-
     permissions:
       pull-requests: write
       contents: read
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Format PR title from branch name
         id: title
         run: |
           BRANCH="${{ github.ref_name }}"
 
-          # Expected format: OP-10-task-add-docs
-          # Extract ticket ID (e.g. OP-10) and description (e.g. task-add-docs)
-          TICKET=$(echo "$BRANCH" | grep -oP '^[A-Z]+-\d+' | tr -d '[:space:]')
+          # Extract ticket (e.g. OP-10) safely with awk
+          TICKET=$(echo "$BRANCH" | awk -F'-' '{print $1"-"$2}')
+
+          # Strip ticket prefix (e.g. "OP-10-") from the branch name
           DESCRIPTION="${BRANCH#${TICKET}-}"
 
-          # Replace hyphens/underscores with spaces and title-case
+          # Replace hyphens/underscores with spaces and title-case each word
           READABLE=$(echo "$DESCRIPTION" | tr '-_' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')
 
-          # Final title: "OP-10 Task Add Docs"
           TITLE="${TICKET} ${READABLE}"
-
-          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
-
+          echo "title=${TITLE}" >> "$GITHUB_OUTPUT"
       - name: Check if PR already exists
         id: check
         env:
@@ -52,9 +47,7 @@ jobs:
             --base main \
             --json number \
             --jq '.[0].number')
-
           echo "existing=$EXISTING" >> "$GITHUB_OUTPUT"
-
       - name: Create draft PR
         if: steps.check.outputs.existing == ''
         env:
@@ -66,4 +59,3 @@ jobs:
             --head "${{ github.ref_name }}" \
             --title "${{ steps.title.outputs.title }}" \
             --body-file ".github/pull_request_template.md"
-
