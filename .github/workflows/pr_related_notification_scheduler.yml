@@ -30,45 +30,33 @@ jobs:
             console.log(`Found ${readyPRs.length} ready (non-draft) PRs`);
 
             // Buckets
-            const failedChecksPRs   = [];  // Priority 1: has failed checks
+            const conflictPRs           = [];  // Priority 1: has merge conflicts
             const unresolvedCommentsPRs = [];  // Priority 2: has unresolved comments
-            const readyToMergePRs   = [];  // Priority 3: all green, ready to merge
+            const failedChecksPRs       = [];  // Priority 3: has failed checks
+            const readyToMergePRs       = [];  // Priority 4: all green, ready to merge
 
             for (const pr of readyPRs) {
               const sha = pr.head.sha;
 
-              // ── 1. Get check runs ────────────────────────────────────────
-              const { data: checkRunsData } = await github.rest.checks.listForRef({
-                owner, repo, ref: sha, per_page: 100,
+              // ── 1. Check for merge conflicts ─────────────────────────────
+              const { data: prDetail } = await github.rest.pulls.get({
+                owner, repo, pull_number: pr.number,
               });
 
-              const allRuns = checkRunsData.check_runs;
-              const failedChecks = allRuns.filter(
-                run =>
-                  run.status === 'completed' &&
-                  ['failure', 'timed_out', 'cancelled'].includes(run.conclusion)
-              );
-              const pendingChecks = allRuns.filter(run => run.status !== 'completed');
-
-              if (failedChecks.length > 0) {
-                failedChecksPRs.push({ pr, failedChecks });
-                continue;  // highest priority — skip further checks for this PR
+              if (prDetail.mergeable === false) {
+                conflictPRs.push({ pr: prDetail });
+                continue;
               }
 
               // ── 2. Get unresolved review comments ────────────────────────
-              // Fetch all reviews to find REQUEST_CHANGES
               const { data: reviews } = await github.rest.pulls.listReviews({
                 owner, repo, pull_number: pr.number, per_page: 100,
               });
 
-              // Get review comments (inline + general)
               const { data: reviewComments } = await github.rest.pulls.listReviewComments({
                 owner, repo, pull_number: pr.number, per_page: 100,
               });
 
-              // A comment thread is "unresolved" if it has no reply that resolves it.
-              // GitHub API doesn't expose resolved state directly, so we check:
-              // - Reviews with state REQUEST_CHANGES that haven't been superseded by APPROVED
               const latestReviewByUser = {};
               for (const review of reviews) {
                 if (['APPROVED', 'CHANGES_REQUESTED'].includes(review.state)) {
@@ -80,14 +68,9 @@ jobs:
                 .filter(([, state]) => state === 'CHANGES_REQUESTED')
                 .map(([user]) => user);
 
-              // Also count unresolved inline comment threads
-              // Group by in_reply_to_id to find root comments, check if resolved
               const rootComments = reviewComments.filter(c => !c.in_reply_to_id);
               const replies = reviewComments.filter(c => c.in_reply_to_id);
               const repliedRootIds = new Set(replies.map(r => r.in_reply_to_id));
-
-              // Unresolved = root comments that have no replies (no one addressed them)
-              // or still have CHANGES_REQUESTED reviews outstanding
               const unresolvedThreadCount = rootComments.filter(
                 c => !repliedRootIds.has(c.id)
               ).length;
@@ -104,20 +87,40 @@ jobs:
                 continue;
               }
 
-              // ── 3. Ready to merge (no failures, no unresolved comments) ──
-              if (pendingChecks.length === 0) {
-                // All checks completed and passed
-                const approvals = Object.values(latestReviewByUser).filter(
-                  s => s === 'APPROVED'
-                ).length;
-                readyToMergePRs.push({ pr, approvals });
+              // ── 3. Get check runs ────────────────────────────────────────
+              const { data: checkRunsData } = await github.rest.checks.listForRef({
+                owner, repo, ref: sha, per_page: 100,
+              });
+
+              const allRuns = checkRunsData.check_runs;
+              const failedChecks = allRuns.filter(
+                run =>
+                  run.status === 'completed' &&
+                  ['failure', 'timed_out', 'cancelled'].includes(run.conclusion)
+              );
+              const pendingChecks = allRuns.filter(run => run.status !== 'completed');
+
+              if (failedChecks.length > 0) {
+                failedChecksPRs.push({ pr, failedChecks });
+                continue;
               }
+
+              if (pendingChecks.length > 0) {
+                continue;  // checks still running — ignore this PR entirely
+              }
+
+              // ── 4. Ready to merge ────────────────────────────────────────
+              const approvals = Object.values(latestReviewByUser).filter(
+                s => s === 'APPROVED'
+              ).length;
+              readyToMergePRs.push({ pr, approvals });
             }
 
-            // ── Build and send Slack message ────────────────────────────────
+            // ── Build Slack message ─────────────────────────────────────────
             const hasAnything =
-              failedChecksPRs.length > 0 ||
+              conflictPRs.length > 0 ||
               unresolvedCommentsPRs.length > 0 ||
+              failedChecksPRs.length > 0 ||
               readyToMergePRs.length > 0;
 
             if (!hasAnything) {
@@ -140,32 +143,25 @@ jobs:
               { type: 'divider' },
             ];
 
-            // ── Section 1: Failed Checks ─────────────────────────────────
-            if (failedChecksPRs.length > 0) {
+            // ── Section 1: Merge Conflicts ───────────────────────────────
+            if (conflictPRs.length > 0) {
               blocks.push({
                 type: 'section',
                 text: {
                   type: 'mrkdwn',
-                  text: `*🔴 PRs with Failed Checks (${failedChecksPRs.length})*`,
+                  text: `*🔀 PRs with Merge Conflicts (${conflictPRs.length})*`,
                 },
               });
 
-              for (const { pr, failedChecks } of failedChecksPRs) {
-                const checkList = failedChecks.map(c => {
-                  const icon =
-                    c.conclusion === 'failure'   ? '❌' :
-                    c.conclusion === 'timed_out' ? '⏱️' : '🚫';
-                  return `${icon} <${c.html_url}|${c.name}>`;
-                }).join('  ·  ');
-
+              for (const { pr } of conflictPRs) {
                 blocks.push({
                   type: 'section',
                   text: {
                     type: 'mrkdwn',
                     text: [
                       `*<${pr.html_url}|#${pr.number} ${pr.title}>*`,
-                      `👤 ${pr.user.login}`,
-                      `Failed: ${checkList}`,
+                      `👤 ${pr.user.login}  •  Base: \`${pr.base.ref}\``,
+                      `⚠️ This branch has conflicts with \`${pr.base.ref}\` and must be resolved before merging.`,
                     ].join('\n'),
                   },
                 });
@@ -203,7 +199,40 @@ jobs:
               blocks.push({ type: 'divider' });
             }
 
-            // ── Section 3: Ready to Merge ────────────────────────────────
+            // ── Section 3: Failed Checks ─────────────────────────────────
+            if (failedChecksPRs.length > 0) {
+              blocks.push({
+                type: 'section',
+                text: {
+                  type: 'mrkdwn',
+                  text: `*🔴 PRs with Failed Checks (${failedChecksPRs.length})*`,
+                },
+              });
+
+              for (const { pr, failedChecks } of failedChecksPRs) {
+                const checkList = failedChecks.map(c => {
+                  const icon =
+                    c.conclusion === 'failure'   ? '❌' :
+                    c.conclusion === 'timed_out' ? '⏱️' : '🚫';
+                  return `${icon} <${c.html_url}|${c.name}>`;
+                }).join('  ·  ');
+
+                blocks.push({
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: [
+                      `*<${pr.html_url}|#${pr.number} ${pr.title}>*`,
+                      `👤 ${pr.user.login}`,
+                      `Failed: ${checkList}`,
+                    ].join('\n'),
+                  },
+                });
+              }
+              blocks.push({ type: 'divider' });
+            }
+
+            // ── Section 4: Ready to Merge ────────────────────────────────
             if (readyToMergePRs.length > 0) {
               blocks.push({
                 type: 'section',
@@ -241,8 +270,9 @@ jobs:
             }
 
             console.log('Slack notified:', {
-              failedChecks: failedChecksPRs.length,
+              conflicts: conflictPRs.length,
               unresolvedComments: unresolvedCommentsPRs.length,
+              failedChecks: failedChecksPRs.length,
               readyToMerge: readyToMergePRs.length,
             });
         env:
