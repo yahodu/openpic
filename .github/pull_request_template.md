@@ -1,6 +1,6 @@
 ## 🎫 Jira Ticket
 <!-- Required: Link to the Jira issue. This enables automation and tracking. -->
-**Issue:** [OP-123](https://your-company.atlassian.net/browse/PROJ-123)
+**Issue:** [OP-000](https://yahodu.atlassian.net/browse/OP-000)
 
 ## 📝 Implementation Summary
 <!-- Critical for Confluence Sync: Summarize the technical approach here.
