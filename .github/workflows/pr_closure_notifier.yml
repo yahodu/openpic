@@ -1,5 +1,8 @@
 name: Notify Slack on PR Close
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     types: [closed]
