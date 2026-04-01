@@ -33,7 +33,7 @@ jobs:
           DESCRIPTION="${BRANCH#${TICKET}-}"
 
           # Replace hyphens/underscores with spaces and title-case each word
-          READABLE=$(echo "$DESCRIPTION" | tr '-_' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')
+          READABLE=$(echo "$DESCRIPTION" | tr '_-' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2); print}')
 
           TITLE="${TICKET} ${READABLE}"
           echo "title=${TITLE}" >> "$GITHUB_OUTPUT"
