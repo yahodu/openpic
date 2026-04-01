@@ -13,14 +13,17 @@ jobs:
       github.ref_name != 'main' &&
       github.ref_name != 'master' &&
       github.ref_name != 'develop'
+
     permissions:
       pull-requests: write
       contents: read
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Format PR title from branch name
         id: title
         run: |
@@ -37,6 +40,7 @@ jobs:
 
           TITLE="${TICKET} ${READABLE}"
           echo "title=${TITLE}" >> "$GITHUB_OUTPUT"
+
       - name: Check if PR already exists
         id: check
         env:
@@ -48,6 +52,7 @@ jobs:
             --json number \
             --jq '.[0].number')
           echo "existing=$EXISTING" >> "$GITHUB_OUTPUT"
+
       - name: Create draft PR
         if: steps.check.outputs.existing == ''
         env:
