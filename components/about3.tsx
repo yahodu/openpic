@@ -78,7 +78,7 @@ const About3 = ({
   description = "",
   companiesTitle = "Valued by clients worldwide",
   companies = defaultCompanies,
-  achievementsTitle = "We are Happy",
+  achievementsTitle = "We are OpenPic",
   achievementsDescription = "Helping people relive their memories.",
   achievements = defaultAchievements,
 }: About3Props = {}) => {
