@@ -1,0 +1,84 @@
+name: Vercel Production Deploy Monitor
+
+on:
+  deployment_status:
+
+jobs:
+  handle-failure:
+    if: |
+      github.event.deployment_status.state == 'failure' &&
+      github.event.deployment_status.environment == 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create cron job on cron-job.org
+        run: |
+          # First, clean up any existing job with the same name (idempotency)
+          JOBS=$(curl -s -X GET "https://api.cron-job.org/jobs" \
+            -H "Authorization: Bearer ${{ secrets.CRON_JOB_ORG_API_KEY }}")
+
+          EXISTING_ID=$(echo "$JOBS" | jq -r '
+            .jobs[] | select(.title == "vercel-prod-failure-notifier-job") | .jobId
+          ' | head -n 1)
+
+          if [ -n "$EXISTING_ID" ]; then
+            curl -s -X DELETE "https://api.cron-job.org/jobs/$EXISTING_ID" \
+              -H "Authorization: Bearer ${{ secrets.CRON_JOB_ORG_API_KEY }}"
+            echo "Deleted stale cron job: $EXISTING_ID"
+          fi
+
+          # Create new cron job (every 15 min, max 48 executions = 12 hours)
+          curl -s -X PUT "https://api.cron-job.org/jobs" \
+            -H "Authorization: Bearer ${{ secrets.CRON_JOB_ORG_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "job": {
+                "title": "vercel-prod-failure-notifier-job",
+                "url": "https://api.github.com/repos/${{ github.repository }}/dispatches",
+                "requestMethod": 1,
+                "requestHeaders": {
+                  "Authorization": "Bearer ${{ secrets.GH_PAT }}",
+                  "Accept": "application/vnd.github+json",
+                  "Content-Type": "application/json"
+                },
+                "requestBody": "{\"event_type\": \"prod-deploy-failed\"}",
+                "schedule": {
+                  "timezone": "Asia/Kolkata",
+                  "hours": [-1],
+                  "mdays": [-1],
+                  "months": [-1],
+                  "wdays": [-1],
+                  "minutes": [0, 15, 30, 45]
+                },
+                "executionCount": 48,
+                "enabled": true,
+                "saveResponses": true
+              }
+            }'
+          echo "Cron job created."
+
+  handle-success:
+    if: |
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.environment == 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete cron job from cron-job.org
+        run: |
+          JOBS=$(curl -s -X GET "https://api.cron-job.org/jobs" \
+            -H "Authorization: Bearer ${{ secrets.CRON_JOB_ORG_API_KEY }}")
+
+          # Delete ALL jobs matching the name (handles duplicates safely)
+          JOB_IDS=$(echo "$JOBS" | jq -r '
+            .jobs[] | select(.title == "vercel-prod-failure-notifier-job") | .jobId
+          ')
+
+          if [ -z "$JOB_IDS" ]; then
+            echo "No cron job found to delete. Nothing to do."
+            exit 0
+          fi
+
+          for ID in $JOB_IDS; do
+            curl -s -X DELETE "https://api.cron-job.org/jobs/$ID" \
+              -H "Authorization: Bearer ${{ secrets.CRON_JOB_ORG_API_KEY }}"
+            echo "Deleted cron job: $ID"
+          done
