@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/yahodu/openpic/compare/v1.0.1...v1.0.2) (2026-04-03)
+
+### Bug Fixes
+
+* **landing page:** OP-10 change metrics under the achievements section in landing page ([#45](https://github.com/yahodu/openpic/issues/45)) ([9366d57](https://github.com/yahodu/openpic/commit/9366d57dd144abc39b489fbbc20e6c92da3966eb))
+
 ## [1.0.1](https://github.com/yahodu/openpic/compare/v1.0.0...v1.0.1) (2026-04-03)
 
 ### Bug Fixes
