@@ -69,7 +69,7 @@ const defaultAchievements = [
   { label: "People ", value: "2000+" },
   { label: "Memories", value: "3000+" },
   { label: "Happy Partners", value: "100%" },
-  { label: "Uptime", value: "99.99%" },
+  { label: "Uptime", value: "99%" },
 ];
 
 const About3 = ({
