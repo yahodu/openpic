@@ -1,3 +1,9 @@
+## [1.0.4](https://github.com/yahodu/openpic/compare/v1.0.3...v1.0.4) (2026-04-03)
+
+### Bug Fixes
+
+* OP-10 remove unused import from dialog.tsx ([#48](https://github.com/yahodu/openpic/issues/48)) ([7a78aec](https://github.com/yahodu/openpic/commit/7a78aeccf95f5a61c1a403f520133bb0e91f19ef))
+
 ## [1.0.3](https://github.com/yahodu/openpic/compare/v1.0.2...v1.0.3) (2026-04-03)
 
 ### Bug Fixes
