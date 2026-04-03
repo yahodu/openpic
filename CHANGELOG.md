@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/yahodu/openpic/compare/v1.0.0...v1.0.1) (2026-04-03)
+
+### Bug Fixes
+
+* **landing page:** OP-10 fix achievement title and description in landing page ([#44](https://github.com/yahodu/openpic/issues/44)) ([4d01498](https://github.com/yahodu/openpic/commit/4d014988e2ad8a58ad61cc45c7e289b3c6f7a706))
+
 ## 1.0.0 (2026-04-02)
 
 ### Features
