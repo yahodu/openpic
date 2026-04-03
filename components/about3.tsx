@@ -78,8 +78,8 @@ const About3 = ({
   description = "",
   companiesTitle = "Valued by clients worldwide",
   companies = defaultCompanies,
-  achievementsTitle = "We are Happy",
-  achievementsDescription = "Helping people relive their memories.",
+  achievementsTitle = "We are OpenPic",
+  achievementsDescription = "Helping people relive their memories",
   achievements = defaultAchievements,
 }: About3Props = {}) => {
   const [whyOpenPicAnimationData, setWhyOpenPicAnimationData] = useState(null);
