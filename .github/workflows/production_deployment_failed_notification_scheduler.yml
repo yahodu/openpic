@@ -1,11 +1,11 @@
 name: Production Failure Notifier
 
-permissions:
-  contents: read
-
 on:
   repository_dispatch:
     types: [prod-deploy-failed]
+
+permissions:
+  contents: read
 
 jobs:
   notify:
