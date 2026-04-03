@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/yahodu/openpic/compare/v1.0.2...v1.0.3) (2026-04-03)
+
+### Bug Fixes
+
+* **landing page:** OP-10 change uptime metrics in landing page to a more appropriate value ([#47](https://github.com/yahodu/openpic/issues/47)) ([367fee7](https://github.com/yahodu/openpic/commit/367fee7a84ba554eac0825cb5c21f248ffc0cbd7))
+
 ## [1.0.2](https://github.com/yahodu/openpic/compare/v1.0.1...v1.0.2) (2026-04-03)
 
 ### Bug Fixes
