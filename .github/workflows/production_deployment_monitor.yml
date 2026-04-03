@@ -3,6 +3,9 @@ name: Vercel Production Deploy Monitor
 on:
   deployment_status:
 
+permissions:
+  contents: read
+
 jobs:
   handle-failure:
     if: |

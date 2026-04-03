@@ -68,8 +68,8 @@ const defaultCompanies = [
 const defaultAchievements = [
   { label: "People ", value: "2000+" },
   { label: "Memories", value: "3000+" },
-  { label: "Happy Partners", value: "99%" },
-  { label: "Uptime", value: "99%" },
+  { label: "Happy Partners", value: "100%" },
+  { label: "Uptime", value: "99.99%" },
 ];
 
 const About3 = ({
@@ -78,8 +78,8 @@ const About3 = ({
   description = "",
   companiesTitle = "Valued by clients worldwide",
   companies = defaultCompanies,
-  achievementsTitle = "We are Happy",
-  achievementsDescription = "Helping people relive their memories.",
+  achievementsTitle = "We are OpenPic",
+  achievementsDescription = "Helping people relive their memories",
   achievements = defaultAchievements,
 }: About3Props = {}) => {
   const [whyOpenPicAnimationData, setWhyOpenPicAnimationData] = useState(null);
